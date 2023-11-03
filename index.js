@@ -5,7 +5,7 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import { fileURLToPath } from 'url';
 import path from 'path';
-
+import escapeHtml from 'escape-html';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -45,9 +45,10 @@ io.on('connection', async (socket) => {
   console.log("User connected");
   socket.on('chat message', async (msg, clientOffset, acknowledgementCallback) => {
     let result;
+    const escapedMsg = escapeHtml(msg);
     
     try {
-      result = await db.run('INSERT INTO messages (content, client_offset) VALUES (?, ?)', msg, clientOffset);
+      result = await db.run('INSERT INTO messages (content, client_offset) VALUES (?, ?)', escapedMsg, clientOffset);
     } catch (e) {
       // TODO handle the failure
       if (e.errno === 19 /* SQLITE_CONSTRAINT */ ) {
@@ -58,7 +59,7 @@ io.on('connection', async (socket) => {
       }
       return;
     }
-    io.emit('chat message', msg, result.lastID);
+    io.emit('chat message', escapedMsg, result.lastID);
     fetchSheetData();
     //acknowledge the event
     acknowledgementCallback();
