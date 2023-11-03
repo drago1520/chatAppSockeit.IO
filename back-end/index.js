@@ -37,19 +37,29 @@ app.get('/', (req, res) => {
   res.sendFile(finalPath);
 });
 
+//ClientOffset prevents message duplication! 
+
 io.on('connection', async (socket) => {
   console.log("User connected");
-  socket.on('chat message', async (msg) => {
+  socket.on('chat message', async (msg, clientOffset, acknowledgementCallback) => {
     let result;
     
     try {
-      result = await db.run('INSERT INTO messages (content) VALUES (?)', msg);
+      result = await db.run('INSERT INTO messages (content, client_offset) VALUES (?, ?)', msg, clientOffset);
     } catch (e) {
       // TODO handle the failure
+      if (e.errno === 19 /* SQLITE_CONSTRAINT */ ) {
+        // the message was already inserted, so we notify the client
+        acknowledgementCallback();
+      } else {
+        // nothing to do, just let the client retry
+      }
       return;
     }
     io.emit('chat message', msg, result.lastID);
     fetchSheetData();
+    //acknowledge the event
+    acknowledgementCallback();
   });
   socket.on("disconnect", () => {console.log("User disconnected")});
 
