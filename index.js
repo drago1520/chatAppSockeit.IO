@@ -24,7 +24,8 @@ await db.exec(`
   CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       client_offset TEXT UNIQUE,
-      content TEXT
+      content TEXT,
+      nickname TEXT
   );
 `);
 
@@ -42,13 +43,17 @@ app.get('/', (req, res) => {
 //ClientOffset prevents message duplication! 
 
 io.on('connection', async (socket) => {
+  let nickname;
   console.log("User connected");
+  io.emit('user connection', "User connected");
+  
   socket.on('chat message', async (msg, clientOffset, acknowledgementCallback) => {
     let result;
+    nickname = socket.handshake.auth.nickname;
     const escapedMsg = escapeHtml(msg);
     
     try {
-      result = await db.run('INSERT INTO messages (content, client_offset) VALUES (?, ?)', escapedMsg, clientOffset);
+      result = await db.run('INSERT INTO messages (content, client_offset, nickname) VALUES (?, ?, ?)', escapedMsg, clientOffset, nickname);
     } catch (e) {
       // TODO handle the failure
       if (e.errno === 19 /* SQLITE_CONSTRAINT */ ) {
@@ -59,20 +64,23 @@ io.on('connection', async (socket) => {
       }
       return;
     }
-    io.emit('chat message', escapedMsg, result.lastID);
-    fetchSheetData();
+    io.emit('chat message', escapedMsg, result.lastID, nickname);
+    //fetchSheetData();
     //acknowledge the event
     acknowledgementCallback();
   });
-  socket.on("disconnect", () => {console.log("User disconnected")});
-
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
+    io.emit('user connection', "User disconnected");
+  });
   if (!socket.recovered) {
     // if the connection state recovery was not successful
     try {
-      await db.each('SELECT id, content FROM messages WHERE id > ?',
+      
+      await db.each('SELECT id, content, nickname FROM messages WHERE id > ?',
         [socket.handshake.auth.serverOffset || 0],
         (_err, row) => {
-          socket.emit('chat message', row.content, row.id);
+          socket.emit('chat message', row.content, row.id, row.nickname);
         }
       )
     } catch (e) {
