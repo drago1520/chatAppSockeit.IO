@@ -1,4 +1,13 @@
 let counter = 0;
+function unescapeHtml(escapedStr) {
+  return escapedStr
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
 
   const socket = io({
     auth: {
@@ -25,8 +34,10 @@ form.addEventListener('submit', (e) => {
 });
 
 socket.on('chat message', (msg, serverOffset) => {
+  //message recieved is escaped HTML. 
+  const msgUnescaped = unescapeHtml(msg);
   const item = document.createElement('li');
-  item.textContent = msg;
+  item.textContent = msgUnescaped;
   messages.appendChild(item);
   window.scrollTo(0, document.body.scrollHeight);
   socket.auth.serverOffset = serverOffset;
