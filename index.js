@@ -9,8 +9,9 @@ import path from 'path';
 
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(path.dirname(__filename));
-const frontEnd = path.join(__dirname, 'front-end');
+
+const __dirname = path.dirname(__filename);
+const frontEnd = path.join(__dirname, 'public');
 const finalPath =  path.join(frontEnd, 'index.html');
 // open the database file
 const db = await open({

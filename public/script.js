@@ -1,8 +1,13 @@
-const socket = io({
-  auth: {
-    serverOffset: 0
-  }
-});
+let counter = 0;
+
+  const socket = io({
+    auth: {
+      serverOffset: 0
+    },
+    // enable retries
+    ackTimeout: 10000,
+    retries: 3,
+  });
 
 const form = document.getElementById('form');
 const input = document.getElementById('input');
@@ -11,7 +16,10 @@ const messages = document.getElementById('messages');
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   if (input.value) {
-    socket.emit('chat message', input.value);
+    // compute a unique offset
+    const clientOffset = `${socket.id}-${counter++}`;
+    console.log(clientOffset);
+    socket.emit('chat message', input.value, clientOffset);
     input.value = '';
   }
 });
