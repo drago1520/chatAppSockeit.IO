@@ -46,6 +46,14 @@ io.on('connection', async (socket) => {
   let nickname;
   console.log("User connected");
   io.emit('user connection', "User connected");
+  try {
+    const messages = await db.all("SELECT id, content, nickname FROM messages");
+    messages.forEach((message) => {
+      socket.emit('chat message', message.content, message.id, message.nickname);
+    });
+  } catch (e) {
+    console.error("Failed to retrieve message history:", e);
+  }
   
   socket.on('chat message', async (msg, clientOffset, acknowledgementCallback) => {
     let result;
@@ -54,6 +62,8 @@ io.on('connection', async (socket) => {
     
     try {
       result = await db.run('INSERT INTO messages (content, client_offset, nickname) VALUES (?, ?, ?)', escapedMsg, clientOffset, nickname);
+      
+      
     } catch (e) {
       // TODO handle the failure
       if (e.errno === 19 /* SQLITE_CONSTRAINT */ ) {
@@ -64,8 +74,12 @@ io.on('connection', async (socket) => {
       }
       return;
     }
-    io.emit('chat message', escapedMsg, result.lastID, nickname);
-    //fetchSheetData();
+    // Broadcast the message to everyone except the sender
+    socket.broadcast.emit('chat message', escapedMsg, result.lastID, nickname);
+  
+  // Optionally, you can still emit a separate event to the sender if needed
+  // socket.emit('chat message', escapedMsg, result.lastID, nickname);
+  
     //acknowledge the event
     acknowledgementCallback();
   });
