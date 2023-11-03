@@ -80,9 +80,11 @@ io.on('connection', async (socket) => {
   }
 });
 
-server.listen(3000, () => {
-  console.log('server running at http://localhost:3000');
+const port = process.env.PORT || 3000; // Use Heroku's port or 3000 if local
+server.listen(port, () => {
+  console.log(`server running on port ${port}`);
 });
+
 async function fetchSheetData() {
   try {
     const rows = await db.all("SELECT * FROM messages");
