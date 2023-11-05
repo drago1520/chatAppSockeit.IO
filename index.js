@@ -45,7 +45,7 @@ app.get('/', (req, res) => {
 io.on('connection', async (socket) => {
   let nickname = socket.handshake.auth.nickname;
   console.log("User connected");
-  io.emit('user connection', "User connected");
+  socket.broadcast.emit('user connection', `User ${nickname} is online`);
   try {
     const messages = await db.all("SELECT id, content, nickname FROM messages");
     messages.forEach((message) => {
@@ -85,7 +85,7 @@ io.on('connection', async (socket) => {
   });
   socket.on("disconnect", () => {
     console.log("User disconnected");
-    io.emit('user connection', "User disconnected");
+    socket.broadcast.emit('user connection', `User ${nickname} is offline`);
   });
   if (!socket.recovered) {
     // if the connection state recovery was not successful
