@@ -43,7 +43,7 @@ app.get('/', (req, res) => {
 //ClientOffset prevents message duplication! 
 
 io.on('connection', async (socket) => {
-  let nickname;
+  let nickname = socket.handshake.auth.nickname;
   console.log("User connected");
   io.emit('user connection', "User connected");
   try {
@@ -101,6 +101,15 @@ io.on('connection', async (socket) => {
       // something went wrong
     }
   }
+  
+  //Implement {user} is typing featrure.
+  socket.on('typing', (data, acknowledgementCallback) => {
+    
+    // Broadcast to others that this user is typing
+    console.log(data, nickname);
+    socket.broadcast.emit('userTyping', { userId: nickname, isTyping: data.isTyping });
+    acknowledgementCallback();
+  });
 });
 
 const port = process.env.PORT || 3000; // Use Heroku's port or 3000 if local
